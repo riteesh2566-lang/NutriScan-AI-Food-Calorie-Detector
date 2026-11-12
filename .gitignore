@@ -1,0 +1,19 @@
+# Python virtual environments
+venv/
+.venv/
+env/
+backend/venv/
+backend/.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Local databases
+*.db
+
+# Environment variables
+.env
+
+# Uploads
+uploads/

@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NutriScan AI - Food Detection & Calorie Calculator</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- 1. Authentication View -->
+        <div id="auth-view" class="view-panel active">
+            <div class="auth-card">
+                <div class="auth-logo">
+                    <i class="fa-solid fa-apple-whole brand-icon animate-pulse"></i>
+                    <h1>NutriScan <span class="accent-text">AI</span></h1>
+                    <p>Track your nutrition intelligently using Computer Vision</p>
+                </div>
+                
+                <!-- Tab Controls -->
+                <div class="auth-tabs">
+                    <button id="tab-login-btn" class="auth-tab active" onclick="switchAuthTab('login')">Login</button>
+                    <button id="tab-register-btn" class="auth-tab" onclick="switchAuthTab('register')">Register</button>
+                </div>
+
+                <!-- Login Form -->
+                <form id="login-form" class="auth-form active" onsubmit="handleLogin(event)">
+                    <div class="form-group">
+                        <label for="login-username"><i class="fa-solid fa-user"></i> Username or Email</label>
+                        <input type="text" id="login-username" placeholder="Enter username or email" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="login-password"><i class="fa-solid fa-lock"></i> Password</label>
+                        <input type="password" id="login-password" placeholder="Enter password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <span>Sign In</span> <i class="fa-solid fa-arrow-right-to-bracket"></i>
+                    </button>
+                </form>
+
+                <!-- Register Form -->
+                <form id="register-form" class="auth-form" onsubmit="handleRegister(event)">
+                    <div class="form-group">
+                        <label for="register-username"><i class="fa-solid fa-user"></i> Username</label>
+                        <input type="text" id="register-username" placeholder="Choose a username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-email"><i class="fa-solid fa-envelope"></i> Email Address</label>
+                        <input type="email" id="register-email" placeholder="Enter email address" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-password"><i class="fa-solid fa-lock"></i> Password</label>
+                        <input type="password" id="register-password" placeholder="Create password" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="register-confirm"><i class="fa-solid fa-lock-open"></i> Confirm Password</label>
+                        <input type="password" id="register-confirm" placeholder="Confirm password" required>
+                    </div>
+                    <button type="submit" class="btn btn-primary btn-block">
+                        <span>Create Account</span> <i class="fa-solid fa-user-plus"></i>
+                    </button>
+                </form>
+                
+                <div id="auth-error-msg" class="alert alert-danger hidden"></div>
+            </div>
+        </div>
+
+        <!-- 2. Main App View (Sidebar + Content Panel) -->
+        <div id="main-view" class="view-panel">
+            <!-- Navigation Sidebar -->
+            <aside class="sidebar">
+                <div class="sidebar-header">
+                    <i class="fa-solid fa-apple-whole brand-icon"></i>
+                    <h2>NutriScan <span class="accent-text">AI</span></h2>
+                </div>
+                
+                <nav class="sidebar-nav">
+                    <button id="nav-item-dashboard" class="nav-item active" onclick="navigateTo('dashboard')">
+                        <i class="fa-solid fa-chart-simple"></i> <span>Dashboard</span>
+                    </button>
+                    <button id="nav-item-history" class="nav-item" onclick="navigateTo('history')">
+                        <i class="fa-solid fa-clock-rotate-left"></i> <span>Meal History</span>
+                    </button>
+                    <button id="nav-item-reports" class="nav-item" onclick="navigateTo('reports')">
+                        <i class="fa-solid fa-file-invoice-dollar"></i> <span>Nutrition Reports</span>
+                    </button>
+                    <button id="nav-item-profile" class="nav-item" onclick="navigateTo('profile')">
+                        <i class="fa-solid fa-circle-user"></i> <span>Profile Settings</span>
+                    </button>
+                    <button id="nav-item-admin" class="nav-item hidden" onclick="navigateTo('admin')">
+                        <i class="fa-solid fa-user-shield"></i> <span>Admin Panel</span>
+                    </button>
+                </nav>
+                
+                <div class="sidebar-footer">
+                    <div class="user-badge">
+                        <i class="fa-solid fa-circle-user avatar"></i>
+                        <div class="user-badge-info">
+                            <span id="nav-username" class="username">Guest User</span>
+                            <span id="nav-target-badge" class="target">Goal: 2000 kcal</span>
+                        </div>
+                    </div>
+                    <button class="btn btn-logout" onclick="handleLogout()">
+                        <i class="fa-solid fa-right-from-bracket"></i> <span>Sign Out</span>
+                    </button>
+                </div>
+            </aside>
+
+            <!-- Main Content Area -->
+            <main class="content-area">
+                <!-- Page 1: Dashboard -->
+                <section id="page-dashboard" class="app-page active">
+                    <header class="page-header">
+                        <div>
+                            <h1>Dashboard</h1>
+                            <p>Good day! Here is your nutritional progress for today.</p>
+                        </div>
+                    </header>
+
+                    <!-- Stats Row -->
+                    <div class="stats-grid">
+                        <div class="card card-progress">
+                            <h3>Daily Calorie Budget</h3>
+                            <div class="progress-ring-container">
+                                <svg class="progress-ring" width="160" height="160">
+                                    <circle class="progress-ring-bg" stroke="#1e293b" stroke-width="12" fill="transparent" r="70" cx="80" cy="80"/>
+                                    <circle id="calorie-progress-ring" class="progress-ring-fill" stroke="url(#blueGrad)" stroke-width="12" fill="transparent" r="70" cx="80" cy="80" stroke-dasharray="439.82" stroke-dashoffset="439.82"/>
+                                    <defs>
+                                        <linearGradient id="blueGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                            <stop offset="0%" stop-color="#3b82f6" />
+                                            <stop offset="100%" stop-color="#8b5cf6" />
+                                        </linearGradient>
+                                    </defs>
+                                </svg>
+                                <div class="progress-ring-text">
+                                    <span id="dash-consumed-calories">0</span>
+                                    <small>of <span id="dash-target-calories">2000</span> kcal</small>
+                                </div>
+                            </div>
+                            <div class="calories-status-text">
+                                <span id="dash-remaining-text">2000 kcal remaining</span>
+                            </div>
+                        </div>
+
+                        <!-- Macro Grid Inside Dashboard -->
+                        <div class="card card-macros">
+                            <h3>Nutrient Summary (Today)</h3>
+                            <div class="macros-breakdown">
+                                <div class="macro-bar-item">
+                                    <div class="macro-meta">
+                                        <span class="macro-name"><i class="fa-solid fa-dna protein-icon"></i> Protein</span>
+                                        <span class="macro-value"><span id="dash-protein">0</span>g</span>
+                                    </div>
+                                    <div class="progress-bar-bg"><div id="dash-protein-bar" class="progress-bar-fill protein-bg" style="width: 0%;"></div></div>
+                                </div>
+                                <div class="macro-bar-item">
+                                    <div class="macro-meta">
+                                        <span class="macro-name"><i class="fa-solid fa-wheat-awn carbs-icon"></i> Carbohydrates</span>
+                                        <span class="macro-value"><span id="dash-carbs">0</span>g</span>
+                                    </div>
+                                    <div class="progress-bar-bg"><div id="dash-carbs-bar" class="progress-bar-fill carbs-bg" style="width: 0%;"></div></div>
+                                </div>
+                                <div class="macro-bar-item">
+                                    <div class="macro-meta">
+                                        <span class="macro-name"><i class="fa-solid fa-droplet fat-icon"></i> Fat</span>
+                                        <span class="macro-value"><span id="dash-fat">0</span>g</span>
+                                    </div>
+                                    <div class="progress-bar-bg"><div id="dash-fat-bar" class="progress-bar-fill fat-bg" style="width: 0%;"></div></div>
+                                </div>
+                                <div class="macro-bar-item">
+                                    <div class="macro-meta">
+                                        <span class="macro-name"><i class="fa-solid fa-seedling fiber-icon"></i> Fiber</span>
+                                        <span class="macro-value"><span id="dash-fiber">0</span>g</span>
+                                    </div>
+                                    <div class="progress-bar-bg"><div id="dash-fiber-bar" class="progress-bar-fill fiber-bg" style="width: 0%;"></div></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- AI Capture & Prediction Section -->
+                    <div class="dashboard-capture-section">
+                        <!-- Capture Tool Card -->
+                        <div class="card capture-card">
+                            <h3>Identify Meal Elements</h3>
+                            <p>Upload a food photo or take a picture using your camera to log nutrition instantaneously.</p>
+                            
+                            <div class="capture-actions">
+                                <label class="btn btn-secondary flex-1 cursor-pointer">
+                                    <i class="fa-solid fa-cloud-arrow-up"></i> Upload Food Image
+                                    <input type="file" id="image-upload-input" accept="image/*" class="hidden" onchange="handleImageFileSelect(event)">
+                                </label>
+                                <button class="btn btn-accent flex-1" onclick="openCameraStream()">
+                                    <i class="fa-solid fa-camera"></i> Live Camera Capture
+                                </button>
+                            </div>
+                            
+                            <!-- Hidden Canvas for frame snapshots -->
+                            <canvas id="camera-snapshot-canvas" class="hidden"></canvas>
+                            
+                            <!-- Live Camera Stream Container -->
+                            <div id="camera-stream-container" class="camera-stream-container hidden">
+                                <video id="camera-video" width="100%" height="auto" autoplay playsinline></video>
+                                <div class="camera-controls">
+                                    <button class="btn btn-danger circle-btn" onclick="closeCameraStream()"><i class="fa-solid fa-xmark"></i></button>
+                                    <button class="btn btn-accent circle-btn lg" onclick="takeCameraSnapshot()"><i class="fa-solid fa-circle-dot"></i></button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Interactive Bounding Box & Food Calibration Dashboard -->
+                    <div id="prediction-panel" class="card prediction-card hidden">
+                        <div class="prediction-header">
+                            <h2><i class="fa-solid fa-magnifying-glass-chart"></i> AI Detection Analysis</h2>
+                            <span class="badge badge-success">Processed successfully</span>
+                        </div>
+                        
+                        <div class="prediction-content">
+                            <!-- Visual box overlay container -->
+                            <div class="prediction-visual">
+                                <div id="detection-bounding-container" class="detection-bounding-container">
+                                    <img id="prediction-preview-image" src="" alt="Food Preview">
+                                    <!-- Dynamic overlay elements are injected here by JavaScript -->
+                                </div>
+                            </div>
+
+                            <!-- Interactive calibration sliders -->
+                            <div class="prediction-adjustment">
+                                <h3>Detected Items & Portion Adjuster</h3>
+                                <p class="help-text">Fine-tune the quantity sizes. Calorie counts update dynamically.</p>
+                                
+                                <div id="prediction-items-list" class="prediction-items-list">
+                                    <!-- Dynamic items injected here -->
+                                </div>
+
+                                <div class="prediction-summary-box">
+                                    <h4>Total Meal Nutrition</h4>
+                                    <div class="prediction-total-grid">
+                                        <div><strong>Calories:</strong> <span id="pred-total-calories">0</span> kcal</div>
+                                        <div><strong>Protein:</strong> <span id="pred-total-protein">0</span>g</div>
+                                        <div><strong>Carbs:</strong> <span id="pred-total-carbs">0</span>g</div>
+                                        <div><strong>Fat:</strong> <span id="pred-total-fat">0</span>g</div>
+                                        <div><strong>Fiber:</strong> <span id="pred-total-fiber">0</span>g</div>
+                                    </div>
+                                </div>
+
+                                <div class="prediction-actions">
+                                    <button class="btn btn-secondary" onclick="discardPrediction()"><i class="fa-solid fa-trash-can"></i> Discard</button>
+                                    <button id="save-prediction-btn" class="btn btn-primary" onclick="savePredictionToLog()"><i class="fa-solid fa-floppy-disk"></i> Save to Daily Log</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Page 2: History -->
+                <section id="page-history" class="app-page">
+                    <header class="page-header">
+                        <div>
+                            <h1>Meal History</h1>
+                            <p>Browse through your historically logged meal logs.</p>
+                        </div>
+                    </header>
+
+                    <div id="history-loading-spinner" class="spinner-container hidden">
+                        <i class="fa-solid fa-spinner fa-spin spinner"></i>
+                    </div>
+
+                    <div id="history-empty" class="card empty-card text-center hidden">
+                        <i class="fa-solid fa-receipt empty-icon"></i>
+                        <h3>No meals logged yet</h3>
+                        <p>Use the dashboard to upload or take a picture of your food and start tracking.</p>
+                        <button class="btn btn-primary mt-4" onclick="navigateTo('dashboard')">Log Your First Meal</button>
+                    </div>
+
+                    <!-- Chronological cards layout -->
+                    <div id="history-container" class="history-list">
+                        <!-- Dynamic history cards are injected here -->
+                    </div>
+                </section>
+
+                <!-- Page 3: Reports -->
+                <section id="page-reports" class="app-page">
+                    <header class="page-header">
+                        <div>
+                            <h1>Nutrition & Weekly Reports</h1>
+                            <p>Review comprehensive analysis trends and download PDF reports.</p>
+                        </div>
+                    </header>
+
+                    <div class="reports-grid">
+                        <!-- Weekly Graph -->
+                        <div class="card graph-card">
+                            <h3>Weekly Calories vs Goal Target</h3>
+                            <div class="chart-wrapper">
+                                <!-- Standard SVG Chart -->
+                                <svg id="weekly-chart" viewBox="0 0 700 300" width="100%" height="100%">
+                                    <!-- Dynamic elements injected here -->
+                                </svg>
+                            </div>
+                        </div>
+
+                        <!-- Weekly Summary Metrics -->
+                        <div class="card summary-metrics-card">
+                            <h3>Weekly Average Breakdown</h3>
+                            
+                            <div class="weekly-metrics-list">
+                                <div class="weekly-metric-item">
+                                    <span class="label">Average Daily Intake</span>
+                                    <span class="value"><span id="weekly-avg-calories">0</span> kcal</span>
+                                </div>
+                                <div class="weekly-metric-item">
+                                    <span class="label">Average Protein</span>
+                                    <span class="value protein-text"><span id="weekly-avg-protein">0</span>g</span>
+                                </div>
+                                <div class="weekly-metric-item">
+                                    <span class="label">Average Carbs</span>
+                                    <span class="value carbs-text"><span id="weekly-avg-carbs">0</span>g</span>
+                                </div>
+                                <div class="weekly-metric-item">
+                                    <span class="label">Average Fat</span>
+                                    <span class="value fat-text"><span id="weekly-avg-fat">0</span>g</span>
+                                </div>
+                                <div class="weekly-metric-item">
+                                    <span class="label">Average Fiber</span>
+                                    <span class="value fiber-text"><span id="weekly-avg-fiber">0</span>g</span>
+                                </div>
+                            </div>
+
+                            <button class="btn btn-primary btn-block mt-6" onclick="downloadPDFReport()">
+                                <i class="fa-solid fa-file-pdf"></i> Download Weekly PDF Report
+                            </button>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Page 4: Profile Dashboard -->
+                <section id="page-profile" class="app-page">
+                    <header class="page-header">
+                        <div>
+                            <h1>My Health Profile</h1>
+                            <p>Track your body metrics, nutrition goals, and AI-powered health insights.</p>
+                        </div>
+                    </header>
+
+                    <!-- ══ 1. PROFILE HEADER CARD ══ -->
+                    <div class="profile-hero-card card">
+                        <div class="profile-hero-avatar-wrap">
+                            <div class="profile-hero-avatar">
+                                <i class="fa-solid fa-user-circle"></i>
+                                <button class="avatar-edit-btn" onclick="showToast('Profile picture upload coming soon!','info')" title="Edit Photo">
+                                    <i class="fa-solid fa-camera"></i>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="profile-hero-info">
+                            <h2 id="phero-name">—</h2>
+                            <p id="phero-email" class="phero-email"><i class="fa-solid fa-envelope"></i> —</p>
+                            <div class="phero-meta-badges">
+                                <span class="phero-badge"><i class="fa-solid fa-cake-candles"></i> <span id="phero-age">—</span></span>
+                                <span class="phero-badge"><i class="fa-solid fa-venus-mars"></i> <span id="phero-gender">—</span></span>
+                                <span class="phero-badge"><i class="fa-solid fa-calendar-plus"></i> Joined <span id="phero-joined">—</span></span>
+                            </div>
+                        </div>
+                        <div class="profile-hero-actions">
+                            <button class="btn btn-primary" onclick="openProfileEditModal()">
+                                <i class="fa-solid fa-pen-to-square"></i> Edit Profile
+                            </button>
+                        </div>
+                    </div>
+
+                    <div class="profile-dashboard-grid">
+
+                        <!-- ══ LEFT COLUMN ══ -->
+                        <div class="profile-col-left">
+
+                            <!-- ══ 2. HEALTH METRICS / MEASUREMENTS CARD ══ -->
+                            <div class="card" id="measurements-card">
+                                <h3><i class="fa-solid fa-ruler-combined" style="color:var(--accent)"></i> Body Measurements</h3>
+                                <form id="measurements-form" onsubmit="handleSaveMeasurements(event)" novalidate>
+                                    <div class="form-row">
+                                        <div class="form-group flex-1">
+                                            <label for="m-height"><i class="fa-solid fa-arrow-up-wide-short"></i> Height</label>
+                                            <div class="input-unit-wrap">
+                                                <input type="number" id="m-height" min="50" max="280" step="0.1" placeholder="e.g. 175" oninput="onMeasurementInput()">
+                                                <span class="input-unit" id="height-unit-label">cm</span>
+                                            </div>
+                                            <span class="field-error hidden" id="err-height">Height must be 50–280 cm</span>
+                                        </div>
+                                        <div class="form-group flex-1">
+                                            <label for="m-weight"><i class="fa-solid fa-weight-scale"></i> Weight</label>
+                                            <div class="input-unit-wrap">
+                                                <input type="number" id="m-weight" min="10" max="400" step="0.1" placeholder="e.g. 70" oninput="onMeasurementInput()">
+                                                <span class="input-unit" id="weight-unit-label">kg</span>
+                                            </div>
+                                            <span class="field-error hidden" id="err-weight">Weight must be 10–400 kg</span>
+                                        </div>
+                                    </div>
+                                    <div class="form-row">
+                                        <div class="form-group flex-1">
+                                            <label for="m-age"><i class="fa-solid fa-hourglass-half"></i> Age</label>
+                                            <input type="number" id="m-age" min="1" max="120" placeholder="e.g. 28" oninput="onMeasurementInput()">
+                                            <span class="field-error hidden" id="err-age">Age must be 1–120</span>
+                                        </div>
+                                        <div class="form-group flex-1">
+                                            <label for="m-gender"><i class="fa-solid fa-venus-mars"></i> Gender</label>
+                                            <select id="m-gender" onchange="onMeasurementInput()">
+                                                <option value="">Select gender…</option>
+                                                <option value="male">Male</option>
+                                                <option value="female">Female</option>
+                                                <option value="other">Other / Prefer not to say</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label><i class="fa-solid fa-person-running"></i> Activity Level</label>
+                                        <div class="activity-pill-group" id="activity-pill-group">
+                                            <button type="button" class="activity-pill" data-value="sedentary" onclick="selectActivity(this)">Sedentary</button>
+                                            <button type="button" class="activity-pill" data-value="lightly_active" onclick="selectActivity(this)">Lightly Active</button>
+                                            <button type="button" class="activity-pill" data-value="moderately_active" onclick="selectActivity(this)">Moderately Active</button>
+                                            <button type="button" class="activity-pill" data-value="very_active" onclick="selectActivity(this)">Very Active</button>
+                                            <button type="button" class="activity-pill" data-value="athlete" onclick="selectActivity(this)">Athlete</button>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <label for="m-target-weight"><i class="fa-solid fa-bullseye"></i> Goal Weight</label>
+                                        <div class="input-unit-wrap">
+                                            <input type="number" id="m-target-weight" min="10" max="400" step="0.1" placeholder="Target weight">
+                                            <span class="input-unit" id="target-weight-unit-label">kg</span>
+                                        </div>
+                                    </div>
+                                    <div class="measurements-btn-row">
+                                        <button type="submit" class="btn btn-accent" id="save-measurements-btn">
+                                            <i class="fa-solid fa-floppy-disk"></i> Save Measurements
+                                        </button>
+                                        <button type="button" class="btn btn-secondary" onclick="loadProfilePage()">
+                                            <i class="fa-solid fa-rotate-left"></i> Reset
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+
+                            <!-- ══ 3. BMI CALCULATOR CARD ══ -->
+                            <div class="card" id="bmi-card">
+                                <h3><i class="fa-solid fa-heart-pulse" style="color:#ef4444"></i> BMI Calculator</h3>
+                                <div class="bmi-layout">
+                                    <div class="bmi-gauge-wrap">
+                                        <svg class="bmi-gauge-svg" viewBox="0 0 200 120" width="200" height="120">
+                                            <!-- Background arcs -->
+                                            <path d="M20,100 A80,80 0 0,1 60,27" fill="none" stroke="#3b82f6" stroke-width="14" stroke-linecap="round" opacity="0.25"/>
+                                            <path d="M60,27 A80,80 0 0,1 140,27" fill="none" stroke="#10b981" stroke-width="14" stroke-linecap="round" opacity="0.25"/>
+                                            <path d="M140,27 A80,80 0 0,1 175,60" fill="none" stroke="#f59e0b" stroke-width="14" stroke-linecap="round" opacity="0.25"/>
+                                            <path d="M175,60 A80,80 0 0,1 180,100" fill="none" stroke="#ef4444" stroke-width="14" stroke-linecap="round" opacity="0.25"/>
+                                            <!-- Active needle arc -->
+                                            <path id="bmi-gauge-arc" d="M20,100 A80,80 0 0,1 20,100" fill="none" stroke="#10b981" stroke-width="14" stroke-linecap="round" style="transition: all 0.8s cubic-bezier(0.4,0,0.2,1)"/>
+                                            <!-- Needle dot -->
+                                            <circle id="bmi-gauge-dot" cx="20" cy="100" r="7" fill="#10b981" style="transition: all 0.8s cubic-bezier(0.4,0,0.2,1); filter: drop-shadow(0 0 6px currentColor)"/>
+                                            <!-- Category labels -->
+                                            <text x="10" y="115" fill="#3b82f6" font-size="7" font-family="Outfit,sans-serif" font-weight="600">Under</text>
+                                            <text x="75" y="18" fill="#10b981" font-size="7" font-family="Outfit,sans-serif" font-weight="600" text-anchor="middle">Normal</text>
+                                            <text x="152" y="38" fill="#f59e0b" font-size="7" font-family="Outfit,sans-serif" font-weight="600">Over</text>
+                                            <text x="175" y="115" fill="#ef4444" font-size="7" font-family="Outfit,sans-serif" font-weight="600">Obese</text>
+                                        </svg>
+                                        <div class="bmi-score-display">
+                                            <span class="bmi-score-num" id="bmi-score">—</span>
+                                            <span class="bmi-score-label" id="bmi-category-label">Enter measurements</span>
+                                        </div>
+                                    </div>
+                                    <div class="bmi-details-wrap">
+                                        <div class="bmi-progress-bar-wrap">
+                                            <div class="bmi-range-labels">
+                                                <span style="color:#3b82f6">Underweight</span>
+                                                <span style="color:#10b981">Normal</span>
+                                                <span style="color:#f59e0b">Overweight</span>
+                                                <span style="color:#ef4444">Obese</span>
+                                            </div>
+                                            <div class="bmi-track">
+                                                <div class="bmi-track-segment" style="background:#3b82f6;flex:18.5"></div>
+                                                <div class="bmi-track-segment" style="background:#10b981;flex:6.5"></div>
+                                                <div class="bmi-track-segment" style="background:#f59e0b;flex:5"></div>
+                                                <div class="bmi-track-segment" style="background:#ef4444;flex:10"></div>
+                                            </div>
+                                            <div class="bmi-needle-row">
+                                                <div class="bmi-needle" id="bmi-needle" style="left:0%">▲</div>
+                                            </div>
+                                        </div>
+                                        <div class="bmi-recommendation-box" id="bmi-recommendation">
+                                            <i class="fa-solid fa-circle-info"></i>
+                                            <span>Enter your height and weight to see your BMI and personalized recommendations.</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ══ 7. AI HEALTH INSIGHTS CARD ══ -->
+                            <div class="card" id="ai-insights-card">
+                                <h3><i class="fa-solid fa-brain" style="color:#8b5cf6"></i> AI Health Insights</h3>
+                                <div id="ai-insights-content">
+                                    <div class="ai-insights-placeholder">
+                                        <i class="fa-solid fa-robot"></i>
+                                        <p>Save your measurements to unlock personalized AI health insights.</p>
+                                    </div>
+                                </div>
+                            </div>
+
+                        </div>
+
+                        <!-- ══ RIGHT COLUMN ══ -->
+                        <div class="profile-col-right">
+
+                            <!-- ══ 4. DAILY NUTRITION GOALS CARD ══ -->
+                            <div class="card" id="nutrition-goals-card">
+                                <h3><i class="fa-solid fa-utensils" style="color:#f59e0b"></i> Daily Nutrition Goals</h3>
+                                <p class="card-sub-text">Auto-calculated based on your body metrics and activity level</p>
+                                <div class="nutrition-goals-grid">
+                                    <div class="nutrition-stat-card calories">
+                                        <div class="nscard-icon"><i class="fa-solid fa-fire-flame-curved"></i></div>
+                                        <div class="nscard-value" id="ng-calories">—</div>
+                                        <div class="nscard-label">Calories</div>
+                                        <div class="nscard-unit">kcal/day</div>
+                                    </div>
+                                    <div class="nutrition-stat-card protein">
+                                        <div class="nscard-icon"><i class="fa-solid fa-dna"></i></div>
+                                        <div class="nscard-value" id="ng-protein">—</div>
+                                        <div class="nscard-label">Protein</div>
+                                        <div class="nscard-unit">g/day</div>
+                                    </div>
+                                    <div class="nutrition-stat-card carbs">
+                                        <div class="nscard-icon"><i class="fa-solid fa-wheat-awn"></i></div>
+                                        <div class="nscard-value" id="ng-carbs">—</div>
+                                        <div class="nscard-label">Carbohydrates</div>
+                                        <div class="nscard-unit">g/day</div>
+                                    </div>
+                                    <div class="nutrition-stat-card fat">
+                                        <div class="nscard-icon"><i class="fa-solid fa-droplet"></i></div>
+                                        <div class="nscard-value" id="ng-fat">—</div>
+                                        <div class="nscard-label">Fat</div>
+                                        <div class="nscard-unit">g/day</div>
+                                    </div>
+                                    <div class="nutrition-stat-card water">
+                                        <div class="nscard-icon"><i class="fa-solid fa-glass-water"></i></div>
+                                        <div class="nscard-value" id="ng-water">—</div>
+                                        <div class="nscard-label">Water</div>
+                                        <div class="nscard-unit">L/day</div>
+                                    </div>
+                                    <div class="nutrition-stat-card fiber">
+                                        <div class="nscard-icon"><i class="fa-solid fa-seedling"></i></div>
+                                        <div class="nscard-value" id="ng-fiber">—</div>
+                                        <div class="nscard-label">Fiber</div>
+                                        <div class="nscard-unit">g/day</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ══ 5. HEALTH SUMMARY DASHBOARD CARD ══ -->
+                            <div class="card" id="health-summary-card">
+                                <h3><i class="fa-solid fa-chart-pie" style="color:#3b82f6"></i> Health Summary</h3>
+                                <div class="health-summary-grid">
+                                    <div class="hs-stat-item">
+                                        <div class="hs-stat-icon" style="background:rgba(16,185,129,0.15);color:#10b981">
+                                            <i class="fa-solid fa-weight-scale"></i>
+                                        </div>
+                                        <div class="hs-stat-info">
+                                            <div class="hs-stat-value" id="hs-current-weight">—</div>
+                                            <div class="hs-stat-label">Current Weight</div>
+                                        </div>
+                                    </div>
+                                    <div class="hs-stat-item">
+                                        <div class="hs-stat-icon" style="background:rgba(59,130,246,0.15);color:#3b82f6">
+                                            <i class="fa-solid fa-bullseye"></i>
+                                        </div>
+                                        <div class="hs-stat-info">
+                                            <div class="hs-stat-value" id="hs-target-weight">—</div>
+                                            <div class="hs-stat-label">Target Weight</div>
+                                        </div>
+                                    </div>
+                                    <div class="hs-stat-item">
+                                        <div class="hs-stat-icon" style="background:rgba(245,158,11,0.15);color:#f59e0b">
+                                            <i class="fa-solid fa-heart-pulse"></i>
+                                        </div>
+                                        <div class="hs-stat-info">
+                                            <div class="hs-stat-value" id="hs-bmi">—</div>
+                                            <div class="hs-stat-label">BMI Score</div>
+                                        </div>
+                                    </div>
+                                    <div class="hs-stat-item">
+                                        <div class="hs-stat-icon" style="background:rgba(239,68,68,0.15);color:#ef4444">
+                                            <i class="fa-solid fa-fire"></i>
+                                        </div>
+                                        <div class="hs-stat-info">
+                                            <div class="hs-stat-value" id="hs-calories-remaining">—</div>
+                                            <div class="hs-stat-label">Calories Remaining</div>
+                                        </div>
+                                    </div>
+                                    <div class="hs-stat-item">
+                                        <div class="hs-stat-icon" style="background:rgba(139,92,246,0.15);color:#8b5cf6">
+                                            <i class="fa-solid fa-bowl-food"></i>
+                                        </div>
+                                        <div class="hs-stat-info">
+                                            <div class="hs-stat-value" id="hs-meals-logged">—</div>
+                                            <div class="hs-stat-label">Meals Logged Today</div>
+                                        </div>
+                                    </div>
+                                    <div class="hs-stat-item">
+                                        <div class="hs-stat-icon" style="background:rgba(16,185,129,0.15);color:#10b981">
+                                            <i class="fa-solid fa-camera"></i>
+                                        </div>
+                                        <div class="hs-stat-info">
+                                            <div class="hs-stat-value" id="hs-ai-detections">—</div>
+                                            <div class="hs-stat-label">AI Detections Today</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Weight Progress toward Goal -->
+                                <div class="weight-progress-wrap" id="weight-progress-section">
+                                    <div class="wp-header">
+                                        <span class="wp-title"><i class="fa-solid fa-flag-checkered"></i> Progress toward Goal</span>
+                                        <span class="wp-pct" id="wp-pct">—</span>
+                                    </div>
+                                    <div class="progress-bar-bg">
+                                        <div class="progress-bar-fill" id="wp-bar" style="width:0%;background:var(--accent-grad)"></div>
+                                    </div>
+                                    <div class="wp-labels">
+                                        <span id="wp-start-label">Start</span>
+                                        <span id="wp-goal-label">Goal</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- ══ 6. WEEKLY PROGRESS CHARTS CARD ══ -->
+                            <div class="card" id="progress-charts-card">
+                                <h3><i class="fa-solid fa-chart-line" style="color:#10b981"></i> Weight & BMI Progress</h3>
+                                <div class="profile-chart-tabs">
+                                    <button class="pchart-tab active" onclick="switchProfileChart('weight', this)">Weekly Weight</button>
+                                    <button class="pchart-tab" onclick="switchProfileChart('bmi', this)">BMI Trend</button>
+                                </div>
+                                <div class="chart-wrapper" id="profile-chart-container">
+                                    <svg id="profile-weight-chart" viewBox="0 0 600 220" width="100%" height="220">
+                                        <text x="300" y="110" text-anchor="middle" fill="var(--text-muted)" font-family="Outfit,sans-serif" font-size="13">
+                                            Save measurements to see your progress charts
+                                        </text>
+                                    </svg>
+                                    <svg id="profile-bmi-chart" viewBox="0 0 600 220" width="100%" height="220" class="hidden">
+                                        <text x="300" y="110" text-anchor="middle" fill="var(--text-muted)" font-family="Outfit,sans-serif" font-size="13">
+                                            BMI trend will appear here
+                                        </text>
+                                    </svg>
+                                </div>
+                            </div>
+
+                            <!-- ══ 8. SETTINGS CARD ══ -->
+                            <div class="card" id="profile-settings-card">
+                                <h3><i class="fa-solid fa-gear" style="color:var(--text-secondary)"></i> Settings & Preferences</h3>
+
+                                <!-- Units -->
+                                <div class="settings-section">
+                                    <div class="settings-section-title">Measurement Units</div>
+                                    <div class="settings-row">
+                                        <div class="settings-row-info">
+                                            <i class="fa-solid fa-ruler"></i>
+                                            <div>
+                                                <div class="settings-row-label">Preferred Units</div>
+                                                <div class="settings-row-desc">Switch between metric and imperial</div>
+                                            </div>
+                                        </div>
+                                        <div class="unit-toggle-group" id="unit-toggle-group">
+                                            <button class="unit-toggle-btn active" data-unit="metric" onclick="setUnits('metric', this)">Metric</button>
+                                            <button class="unit-toggle-btn" data-unit="imperial" onclick="setUnits('imperial', this)">Imperial</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <!-- Notifications -->
+                                <div class="settings-section">
+                                    <div class="settings-section-title">Notifications</div>
+                                    <div class="settings-row">
+                                        <div class="settings-row-info">
+                                            <i class="fa-solid fa-bell"></i>
+                                            <div>
+                                                <div class="settings-row-label">Health Notifications</div>
+                                                <div class="settings-row-desc">Get health alerts and tips</div>
+                                            </div>
+                                        </div>
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" id="notif-health" onchange="saveNotifSetting('notif_health', this.checked)">
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                    </div>
+                                    <div class="settings-row">
+                                        <div class="settings-row-info">
+                                            <i class="fa-solid fa-fire"></i>
+                                            <div>
+                                                <div class="settings-row-label">Daily Calorie Reminders</div>
+                                                <div class="settings-row-desc">Remind me to log meals daily</div>
+                                            </div>
+                                        </div>
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" id="notif-calorie" onchange="saveNotifSetting('notif_calorie_reminders', this.checked)">
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                    </div>
+                                    <div class="settings-row">
+                                        <div class="settings-row-info">
+                                            <i class="fa-solid fa-chart-column"></i>
+                                            <div>
+                                                <div class="settings-row-label">Weekly Progress Reports</div>
+                                                <div class="settings-row-desc">Receive weekly email summaries</div>
+                                            </div>
+                                        </div>
+                                        <label class="toggle-switch">
+                                            <input type="checkbox" id="notif-weekly" onchange="saveNotifSetting('notif_weekly_reports', this.checked)">
+                                            <span class="toggle-slider"></span>
+                                        </label>
+                                    </div>
+                                </div>
+
+                                <!-- Account -->
+                                <div class="settings-section">
+                                    <div class="settings-section-title">Account</div>
+                                    <form id="account-settings-form" onsubmit="handleAccountUpdate(event)">
+                                        <div class="form-row">
+                                            <div class="form-group flex-1">
+                                                <label for="settings-email">Email Address</label>
+                                                <input type="email" id="settings-email" placeholder="Enter email">
+                                            </div>
+                                            <div class="form-group flex-1">
+                                                <label for="settings-password">New Password</label>
+                                                <input type="password" id="settings-password" placeholder="Leave blank to keep">
+                                            </div>
+                                        </div>
+                                        <button type="submit" class="btn btn-primary">
+                                            <i class="fa-solid fa-circle-check"></i> Update Account
+                                        </button>
+                                    </form>
+                                </div>
+                            </div>
+
+                        </div><!-- /.profile-col-right -->
+                    </div><!-- /.profile-dashboard-grid -->
+
+                    <!-- ══ EDIT PROFILE MODAL ══ -->
+                    <div id="edit-profile-modal" class="modal-overlay hidden" onclick="closeProfileEditModal(event)">
+                        <div class="modal-box">
+                            <div class="modal-header">
+                                <h3><i class="fa-solid fa-user-pen"></i> Edit Profile</h3>
+                                <button class="modal-close-btn" onclick="closeProfileEditModalDirect()"><i class="fa-solid fa-xmark"></i></button>
+                            </div>
+                            <form id="edit-profile-form" onsubmit="handleEditProfileSubmit(event)">
+                                <div class="form-group">
+                                    <label for="ep-username">Username</label>
+                                    <input type="text" id="ep-username" disabled readonly>
+                                </div>
+                                <div class="form-group">
+                                    <label for="ep-email">Email Address</label>
+                                    <input type="email" id="ep-email" required>
+                                </div>
+                                <div class="form-row">
+                                    <div class="form-group flex-1">
+                                        <label for="ep-age">Age</label>
+                                        <input type="number" id="ep-age" min="1" max="120" placeholder="Your age">
+                                    </div>
+                                    <div class="form-group flex-1">
+                                        <label for="ep-gender">Gender</label>
+                                        <select id="ep-gender">
+                                            <option value="">Select…</option>
+                                            <option value="male">Male</option>
+                                            <option value="female">Female</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-block">
+                                    <i class="fa-solid fa-floppy-disk"></i> Save Changes
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Page 5: Admin Panel -->
+                <section id="page-admin" class="app-page">
+                    <header class="page-header">
+                        <div>
+                            <h1>Admin Panel</h1>
+                            <p>System monitoring, user management, and platform analytics.</p>
+                        </div>
+                    </header>
+
+                    <!-- Admin Stats Grid -->
+                    <div class="admin-stats-grid">
+                        <div class="card stat-card">
+                            <div class="stat-icon users-icon"><i class="fa-solid fa-users"></i></div>
+                            <div class="stat-info">
+                                <h3>Total Users</h3>
+                                <h2 id="admin-stat-users">&mdash;</h2>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon meals-icon"><i class="fa-solid fa-utensils"></i></div>
+                            <div class="stat-info">
+                                <h3>Total Meals</h3>
+                                <h2 id="admin-stat-meals">&mdash;</h2>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon dau-icon"><i class="fa-solid fa-bolt"></i></div>
+                            <div class="stat-info">
+                                <h3>Active Today</h3>
+                                <h2 id="admin-stat-dau">&mdash;</h2>
+                            </div>
+                        </div>
+                        <div class="card stat-card">
+                            <div class="stat-icon wau-icon"><i class="fa-solid fa-calendar-week"></i></div>
+                            <div class="stat-info">
+                                <h3>Active This Week</h3>
+                                <h2 id="admin-stat-wau">&mdash;</h2>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Admin Panel Tabs/Sections -->
+                    <div class="admin-content-card card">
+                        <div class="admin-tabs">
+                            <button id="admin-tab-btn-users" class="admin-tab active" onclick="switchAdminTab('users')">
+                                <i class="fa-solid fa-user-gear"></i> Users Management
+                            </button>
+                            <button id="admin-tab-btn-detail" class="admin-tab" onclick="switchAdminTab('detail')" style="display:none;">
+                                <i class="fa-solid fa-user-circle"></i> <span id="admin-detail-tab-label">User Detail</span>
+                            </button>
+                            <button id="admin-tab-btn-analytics" class="admin-tab" onclick="switchAdminTab('analytics')">
+                                <i class="fa-solid fa-chart-pie"></i> Analytics Dashboard
+                            </button>
+                        </div>
+
+                        <!-- Tab 1: Users Management -->
+                        <div id="admin-tab-users" class="admin-tab-content">
+                            <div class="admin-search-bar">
+                                <i class="fa-solid fa-magnifying-glass"></i>
+                                <input type="text" id="admin-user-search" placeholder="Search by username or email…" oninput="handleAdminUserSearch(this.value)">
+                            </div>
+                            <div class="table-responsive">
+                                <table class="admin-table" id="admin-users-table">
+                                    <thead>
+                                        <tr>
+                                            <th class="sortable" onclick="sortAdminUsers('id')">ID <i class="fa-solid fa-sort"></i></th>
+                                            <th class="sortable" onclick="sortAdminUsers('username')">Username <i class="fa-solid fa-sort"></i></th>
+                                            <th>Email</th>
+                                            <th class="sortable" onclick="sortAdminUsers('meal_count')">Meals <i class="fa-solid fa-sort"></i></th>
+                                            <th class="sortable" onclick="sortAdminUsers('last_active')">Last Active <i class="fa-solid fa-sort"></i></th>
+                                            <th>Status</th>
+                                            <th class="text-right">Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="admin-users-list">
+                                        <!-- Dynamic content -->
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Tab 2: User Detail -->
+                        <div id="admin-tab-detail" class="admin-tab-content hidden">
+                            <button class="btn btn-secondary btn-sm" onclick="switchAdminTab('users')" style="margin-bottom:1.5rem;">
+                                <i class="fa-solid fa-arrow-left"></i> Back to Users
+                            </button>
+                            <div id="admin-user-detail-content">
+                                <!-- Dynamic user detail injected here -->
+                            </div>
+                        </div>
+
+                        <!-- Tab 3: Analytics Dashboard -->
+                        <div id="admin-tab-analytics" class="admin-tab-content hidden">
+                            <!-- Detection Success Rate -->
+                            <div class="analytics-metrics-row">
+                                <div class="analytics-metric-card">
+                                    <div class="analytics-gauge-wrap">
+                                        <svg class="analytics-gauge" viewBox="0 0 120 120" width="120" height="120">
+                                            <circle cx="60" cy="60" r="50" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="10"/>
+                                            <circle id="analytics-success-ring" cx="60" cy="60" r="50" fill="none"
+                                                stroke="url(#successGrad)" stroke-width="10" stroke-linecap="round"
+                                                stroke-dasharray="314.16" stroke-dashoffset="314.16"
+                                                transform="rotate(-90 60 60)"/>
+                                            <defs>
+                                                <linearGradient id="successGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                                                    <stop offset="0%" stop-color="#10b981"/>
+                                                    <stop offset="100%" stop-color="#059669"/>
+                                                </linearGradient>
+                                            </defs>
+                                        </svg>
+                                        <div class="analytics-gauge-text">
+                                            <span id="analytics-success-pct">0</span><small>%</small>
+                                        </div>
+                                    </div>
+                                    <h4>Detection Success Rate</h4>
+                                    <p class="text-muted">Meals with ≥1 detected item</p>
+                                </div>
+                            </div>
+
+                            <!-- Top 10 Foods Bar Chart -->
+                            <div class="analytics-chart-section">
+                                <h3><i class="fa-solid fa-ranking-star"></i> Top 10 Most Detected Foods</h3>
+                                <div id="analytics-top-foods" class="analytics-bar-chart">
+                                    <p class="text-muted text-center">Loading…</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </main>
+        </div>
+    </div>
+
+    <!-- Notification Toast -->
+    <div id="toast" class="toast hidden"></div>
+
+    <!-- App JS Logic -->
+    <script src="app.js"></script>
+</body>
+</html>
